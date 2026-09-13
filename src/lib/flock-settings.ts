@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DORPER_LOGO_BASE64, UNION_LOGO_BASE64 } from '@/assets/logos-base64';
 
 export interface FlockSettings {
   flockName: string;
@@ -6,6 +7,7 @@ export interface FlockSettings {
   address: string;
   flockId: string;
   logoUrl: string | null;
+  unionLogoUrl?: string | null;
   defaultLanguage: 'pl' | 'en';
   breedPurity: string;
 }
@@ -15,7 +17,8 @@ export const DEFAULT_FLOCK_SETTINGS: FlockSettings = {
   breederName: 'Bartosz Wróbel',
   address: '34-130 Barwałd Górny',
   flockId: 'PL-123456789',
-  logoUrl: null,
+  logoUrl: DORPER_LOGO_BASE64,
+  unionLogoUrl: UNION_LOGO_BASE64,
   defaultLanguage: 'pl',
   breedPurity: '100',
 };
@@ -26,7 +29,13 @@ export function getCachedFlockSettings(): FlockSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...DEFAULT_FLOCK_SETTINGS, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_FLOCK_SETTINGS,
+        ...parsed,
+        logoUrl: parsed.logoUrl || DORPER_LOGO_BASE64,
+        unionLogoUrl: parsed.unionLogoUrl || UNION_LOGO_BASE64,
+      };
     }
   } catch {}
   return DEFAULT_FLOCK_SETTINGS;
@@ -47,7 +56,12 @@ export function useFlockSettings() {
         const saved = await window.electronAPI.settings.get('flock_settings');
         if (saved && mounted) {
           const parsed = JSON.parse(saved);
-          const merged = { ...DEFAULT_FLOCK_SETTINGS, ...parsed };
+          const merged = {
+            ...DEFAULT_FLOCK_SETTINGS,
+            ...parsed,
+            logoUrl: parsed.logoUrl || DORPER_LOGO_BASE64,
+            unionLogoUrl: parsed.unionLogoUrl || UNION_LOGO_BASE64,
+          };
           setSettings(merged);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         }

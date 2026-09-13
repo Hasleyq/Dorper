@@ -80,6 +80,7 @@ export function SettingsPage() {
   const [formFlock, setFormFlock] = useState(flockSettings)
   const [flockSavedMsg, setFlockSavedMsg] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const unionFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setFormFlock(flockSettings)
@@ -91,6 +92,16 @@ export function SettingsPage() {
     const reader = new FileReader()
     reader.onload = () => {
       setFormFlock((prev) => ({ ...prev, logoUrl: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleUnionLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormFlock((prev) => ({ ...prev, unionLogoUrl: reader.result as string }))
     }
     reader.readAsDataURL(file)
   }
@@ -185,58 +196,117 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* Logo upload */}
-          <div className="rounded-lg border border-border p-4 bg-slate-50 space-y-3">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Logo Twojej hodowli (na certyfikat PDF)
-            </Label>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-card overflow-hidden shadow-inner">
-                {formFlock.logoUrl ? (
-                  <img
-                    src={formFlock.logoUrl}
-                    alt="Logo hodowli"
-                    className="h-full w-full object-contain p-1"
-                  />
-                ) : (
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
-                )}
-              </div>
-              <div className="flex-1 space-y-2 text-center sm:text-left">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleLogoUpload}
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  className="hidden"
-                />
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {formFlock.logoUrl ? 'Zmień logo' : 'Wgraj logo hodowli'}
-                  </Button>
-                  {formFlock.logoUrl && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFormFlock({ ...formFlock, logoUrl: null })}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Usuń logo
-                    </Button>
+          {/* Logos upload grid */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* 1. Breed / Flock Logo (Top Left) */}
+            <div className="rounded-lg border border-border p-4 bg-slate-50 space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Logo rasy / hodowli (lewy górny róg PDF)
+              </Label>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-card overflow-hidden shadow-inner">
+                  {formFlock.logoUrl ? (
+                    <img
+                      src={formFlock.logoUrl}
+                      alt="Logo hodowli"
+                      className="h-full w-full object-contain p-1"
+                    />
+                  ) : (
+                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Format: PNG, JPG, WebP. Logo zostanie wygenerowane na certyfikacie PDF w nagłówku i stopce.
-                </p>
+                <div className="flex-1 space-y-1.5 text-center sm:text-left">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {formFlock.logoUrl ? 'Zmień logo' : 'Wgraj logo'}
+                    </Button>
+                    {formFlock.logoUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormFlock({ ...formFlock, logoUrl: null })}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 text-xs h-7"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Usuń
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Domyślnie załadowane oficjalne logo Dorper.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Union Logo (Footer) */}
+            <div className="rounded-lg border border-border p-4 bg-slate-50 space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Logo Związku Hodowców (stopka PDF)
+              </Label>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-card overflow-hidden shadow-inner">
+                  {formFlock.unionLogoUrl ? (
+                    <img
+                      src={formFlock.unionLogoUrl}
+                      alt="Logo związku"
+                      className="h-full w-full object-contain p-1"
+                    />
+                  ) : (
+                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5 text-center sm:text-left">
+                  <input
+                    type="file"
+                    ref={unionFileInputRef}
+                    onChange={handleUnionLogoUpload}
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => unionFileInputRef.current?.click()}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {formFlock.unionLogoUrl ? 'Zmień logo' : 'Wgraj logo'}
+                    </Button>
+                    {formFlock.unionLogoUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFormFlock({ ...formFlock, unionLogoUrl: null })}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 text-xs h-7"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Usuń
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Domyślnie: RZHOiK NOWY TARG.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
