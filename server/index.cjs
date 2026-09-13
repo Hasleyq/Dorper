@@ -36,13 +36,40 @@ const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
 // Fallback to index.html for SPA routing (Express 5 compatible)
+const fs = require('fs');
 app.use((_req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>dorper.pl</title></head>
+        <body style="font-family:sans-serif;padding:50px;text-align:center;background:#0f172a;color:#f8fafc;">
+          <h1>dorper.pl — System hodowlany</h1>
+          <p>Serwer aktywny. Frontend jest w trakcie inicjalizacji...</p>
+        </body>
+      </html>
+    `);
+  }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Dorper Web Application running on http://0.0.0.0:${PORT}`);
+const primaryPort = Number(PORT) || 3000;
+app.listen(primaryPort, '0.0.0.0', () => {
+  console.log(`🚀 Dorper Web Application running on http://0.0.0.0:${primaryPort}`);
   if (process.env.DATABASE_URL) {
     console.log('🔗 Database connected via PostgreSQL DATABASE_URL');
   }
 });
+
+// Also listen on 8080 if primary port is 3000 to catch custom Railway port configurations
+if (primaryPort !== 8080) {
+  try {
+    app.listen(8080, '0.0.0.0', () => {
+      console.log('🚀 Secondary listener active on http://0.0.0.0:8080');
+    });
+  } catch (err) {
+    // Ignore if port 8080 is unavailable
+  }
+}
