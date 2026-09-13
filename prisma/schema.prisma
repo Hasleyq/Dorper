@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Sheep {
+  id          String    @id @default(uuid())
+  earTag      String    @unique
+  name        String?
+  sex         String    // "MALE", "FEMALE"
+  birthDate   DateTime
+  status      String    // "ACTIVE", "SOLD", "DEAD"
+  lineage     String?
+
+  motherId    String?
+  mother      Sheep?    @relation("MotherToChild", fields: [motherId], references: [id])
+  childrenAsMother Sheep[] @relation("MotherToChild")
+
+  fatherId    String?
+  father      Sheep?    @relation("FatherToChild", fields: [fatherId], references: [id])
+  childrenAsFather Sheep[] @relation("FatherToChild")
+
+  weights        WeightRecord[]
+  healthRecords  HealthRecord[]
+  littersMother  Litter[]       @relation("LitterMother")
+  littersFather  Litter[]       @relation("LitterFather")
+  photos         Photo[]
+  transactions   Transaction[]  @relation("SheepTransaction")
+
+  evaluations    Evaluation[]
+
+  penId       String?
+  pen         Pen?      @relation(fields: [penId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Photo {
+  id          String   @id @default(uuid())
+  url         String   
+  description String?
+  sheepId     String
+  sheep       Sheep    @relation(fields: [sheepId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model WeightRecord {
+  id          String   @id @default(uuid())
+  weight      Float    
+  date        DateTime
+  type        String   // "BIRTH", "WEANING", "ADULT", "CUSTOM"
+  sheepId     String
+  sheep       Sheep    @relation(fields: [sheepId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model Litter {
+  id            String    @id @default(uuid())
+  matingDate    DateTime? 
+  lambingDate   DateTime? 
+  bornCount     Int       
+  weanedCount   Int?      
+  motherId      String
+  mother        Sheep     @relation("LitterMother", fields: [motherId], references: [id], onDelete: Restrict)
+  fatherId      String?
+  father        Sheep?    @relation("LitterFather", fields: [fatherId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+}
+
+model HealthRecord {
+  id               String   @id @default(uuid())
+  date             DateTime
+  type             String   // "VACCINE", "DEWORMING", "VET_VISIT", "HOOF"
+  description      String   
+  medication       String?  
+  withdrawalDays   Int?     
+  cost             Float?   
+  attachmentUrl    String?  
+  sheepId          String
+  sheep            Sheep    @relation(fields: [sheepId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  date        DateTime
+  type        String   // "INCOME", "EXPENSE"
+  category    String   // "FEED", "VET", "SALE", "EQUIPMENT"
+  amount      Float
+  description String?
+  sheepId     String?
+  sheep       Sheep?   @relation("SheepTransaction", fields: [sheepId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  date        DateTime
+  title       String
+  description String?
+  color       String?  // "red", "green", "blue", "amber"
+  type        String   // "REMINDER", "WITHDRAWAL", "LAMBING"
+  sheepId     String?
+  createdAt   DateTime @default(now())
+}
+
+model Pen {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sheep       Sheep[]
+  createdAt   DateTime @default(now())
+}
+
+model Evaluation {
+  id          String   @id @default(uuid())
+  date        DateTime
+  score       String   // "T1", "T2", "T3", "T4", "T5"
+  notes       String?
+  sheepId     String
+  sheep       Sheep    @relation(fields: [sheepId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
