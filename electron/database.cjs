@@ -43,10 +43,12 @@ function resolveDatabasePath() {
 function getDatabase() {
   if (!prisma) {
     if (process.env.DATABASE_URL) {
-      prisma = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-      });
-      console.log('✅ PostgreSQL connected via DATABASE_URL');
+      const { Pool } = require('pg');
+      const { PrismaPg } = require('@prisma/adapter-pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const adapter = new PrismaPg(pool);
+      prisma = new PrismaClient({ adapter });
+      console.log('✅ PostgreSQL connected via PrismaPg adapter');
     } else {
       try {
         const dbPath = resolveDatabasePath();
