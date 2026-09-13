@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { WEIGHT_TYPE_LABELS, toInputDate } from '@/lib/sheep-utils'
+import { WEIGHT_TYPE_LABELS, toInputDate, DEFAULT_WEIGHT_TYPES } from '@/lib/sheep-utils'
+import { useCustomOptions } from '@/lib/custom-options'
+import { OptionSelectWithAdd } from '@/components/ui/option-select-with-add'
 import { Loader2 } from 'lucide-react'
 import type { WeightRecordData } from '@/types/electron'
 
@@ -33,7 +35,7 @@ const weightSchema = z.object({
     .transform((v) => parseFloat(v))
     .pipe(z.number().positive('Waga musi być dodatnia')),
   date: z.string().min(1, 'Data jest wymagana'),
-  type: z.enum(['BIRTH', 'WEANING', 'ADULT', 'CUSTOM']),
+  type: z.string().min(1, 'Typ pomiaru jest wymagany'),
 })
 
 type WeightFormValues = z.input<typeof weightSchema>
@@ -55,37 +57,44 @@ export function AddWeightDialog({
 }: AddWeightDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const isEditing = !!editingRecord?.id
+  const { options: weightOptions, addOption: addWeightOption } = useCustomOptions(
+    'weight_types',
+    DEFAULT_WEIGHT_TYPES
+  )
 
   const {
     register,
     handleSubmit,
     reset,
-    control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<WeightFormValues>({
     resolver: zodResolver(weightSchema),
     defaultValues: {
       weight: '',
       date: toInputDate(null),
-      type: 'CUSTOM',
+      type: 'Dorosła',
     },
   })
+
+  const currentType = watch('type')
 
   // Pre-fill when editing — safe conversions
   useEffect(() => {
     if (editingRecord) {
+      const rawType = editingRecord.type ?? ''
+      const mappedType = (WEIGHT_TYPE_LABELS as Record<string, string>)[rawType] || rawType || 'Dorosła'
       reset({
         weight: editingRecord.weight != null ? String(editingRecord.weight) : '',
         date: toInputDate(editingRecord.date),
-        type: (['BIRTH', 'WEANING', 'ADULT', 'CUSTOM'].includes(editingRecord.type ?? '') 
-          ? editingRecord.type as 'BIRTH' | 'WEANING' | 'ADULT' | 'CUSTOM' 
-          : 'CUSTOM'),
+        type: mappedType,
       })
     } else {
       reset({
         weight: '',
         date: toInputDate(null),
-        type: 'CUSTOM',
+        type: 'Dorosła',
       })
     }
   }, [editingRecord, reset])
@@ -164,23 +173,19 @@ export function AddWeightDialog({
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Typ pomiaru</Label>
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Typ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(WEIGHT_TYPE_LABELS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+              <Label>Typ pomiaru *</Label>
+              <OptionSelectWithAdd
+                value={currentType || ''}
+                onValueChange={(val) => setValue('type', val, { shouldValidate: true })}
+                options={weightOptions}
+                onAddOption={addWeightOption}
+                placeholder="Wybierz lub dodaj typ..."
+                error={!!errors.type}
+                addPlaceholder="Wpisz nowy typ pomiaru..."
               />
+              {errors.type && (
+                <p className="text-xs text-red-400">{errors.type.message}</p>
+              )}
             </div>
           </div>
 

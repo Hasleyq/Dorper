@@ -40,6 +40,9 @@ import {
   Loader2,
   Download,
 } from 'lucide-react'
+import { DEFAULT_FINANCE_CATEGORIES } from '@/lib/sheep-utils'
+import { useCustomOptions } from '@/lib/custom-options'
+import { OptionSelectWithAdd } from '@/components/ui/option-select-with-add'
 import type { TransactionData, TransactionSummary, SheepRecord } from '@/types/electron'
 
 // ============================================
@@ -137,17 +140,17 @@ export function FinancesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Finanse hodowli</h2>
           <p className="text-sm text-muted-foreground">
             Przychody, wydatki i bilans finansowy hodowli
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Odśwież
+            <span className="hidden sm:inline">Odśwież</span>
           </Button>
           <Button size="sm" onClick={() => { setEditingTxn(null); setShowAdd(true) }}>
             <Plus className="h-4 w-4" />
@@ -155,7 +158,7 @@ export function FinancesPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0}>
             <Download className="h-4 w-4" />
-            Eksportuj do CSV
+            <span className="hidden sm:inline">Eksport CSV</span>
           </Button>
         </div>
       </div>
@@ -325,15 +328,17 @@ function AddTransactionDialog({
   const [submitting, setSubmitting] = useState(false)
   const [sheepId, setSheepId] = useState<string | undefined>(undefined)
   const isEditing = !!editingTxn?.id
-  const [catSelect, setCatSelect] = useState<string>('')
-  const [customCat, setCustomCat] = useState<string>('')
-  const showCustomCat = catSelect === FIN_CUSTOM_KEY
+  const { options: categoryOptions, addOption: addCategoryOption } = useCustomOptions(
+    'finance_categories',
+    DEFAULT_FINANCE_CATEGORIES
+  )
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     control,
     formState: { errors },
   } = useForm<TransactionFormValues>({
@@ -347,27 +352,12 @@ function AddTransactionDialog({
     },
   })
 
-  // Sync Select → form value for category
-  useEffect(() => {
-    if (catSelect === FIN_CUSTOM_KEY) {
-      setValue('category', customCat)
-    } else {
-      setValue('category', catSelect)
-    }
-  }, [catSelect, customCat, setValue])
+  const currentCategory = watch('category')
 
   // Pre-fill when editing
   useEffect(() => {
     if (editingTxn) {
       const cat = String(editingTxn.category ?? '')
-      const knownValues = CATEGORY_OPTIONS.map(o => o.value)
-      if (knownValues.includes(cat)) {
-        setCatSelect(cat)
-        setCustomCat('')
-      } else {
-        setCatSelect(FIN_CUSTOM_KEY)
-        setCustomCat(cat)
-      }
       reset({
         date: toInputDate(editingTxn.date),
         type: (editingTxn.type === 'INCOME' || editingTxn.type === 'EXPENSE') ? editingTxn.type : 'EXPENSE',
@@ -377,8 +367,6 @@ function AddTransactionDialog({
       })
       setSheepId(editingTxn.sheepId || undefined)
     } else {
-      setCatSelect('')
-      setCustomCat('')
       reset({
         date: toInputDate(null),
         type: 'EXPENSE',
@@ -455,26 +443,15 @@ function AddTransactionDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Kategoria *</Label>
-              <Select value={catSelect} onValueChange={setCatSelect}>
-                <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Wybierz kategorię..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_OPTIONS.map((o) => (
-                    <SelectItem key={o.key} value={o.value}>{o.value}</SelectItem>
-                  ))}
-                  <SelectItem value={FIN_CUSTOM_KEY}>Inne...</SelectItem>
-                </SelectContent>
-              </Select>
-              {showCustomCat && (
-                <Input
-                  placeholder="Wpisz własną kategorię..."
-                  value={customCat}
-                  onChange={(e) => setCustomCat(e.target.value)}
-                  className="mt-1.5"
-                  autoFocus
-                />
-              )}
+              <OptionSelectWithAdd
+                value={currentCategory || ''}
+                onValueChange={(val) => setValue('category', val, { shouldValidate: true })}
+                options={categoryOptions}
+                onAddOption={addCategoryOption}
+                placeholder="Wybierz lub dodaj kategorię..."
+                error={!!errors.category}
+                addPlaceholder="Wpisz nową kategorię..."
+              />
               {errors.category && <p className="text-xs text-red-400">{errors.category.message}</p>}
             </div>
           </div>

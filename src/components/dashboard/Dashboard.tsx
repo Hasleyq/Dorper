@@ -91,22 +91,22 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border bg-card p-5 transition-all duration-300 ${
+      className={`rounded-xl border bg-card p-3.5 sm:p-5 transition-all duration-300 ${
         alert ? 'border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.08)]' : 'border-border'
       }`}
     >
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight">
+        <div className="min-w-0">
+          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
+          <p className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold tracking-tight">
             {value}
             {suffix && (
-              <span className="ml-1 text-sm font-normal text-muted-foreground">{suffix}</span>
+              <span className="ml-1 text-xs sm:text-sm font-normal text-muted-foreground">{suffix}</span>
             )}
           </p>
         </div>
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${accent}`}>
-          <Icon className="h-5 w-5" />
+        <div className={`flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ${accent}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
     </div>
@@ -258,7 +258,7 @@ export function Dashboard() {
       </div>
 
       {/* ==================== STATS ROW ==================== */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Stado ogółem"
           value={stats.total}
@@ -398,7 +398,7 @@ export function Dashboard() {
           {expenseChartData.length > 0 && (
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="mb-4 text-sm font-semibold">Struktura kosztów</h3>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="w-[180px] h-[180px] shrink-0">
                 <div style={{ width: 180, height: 180 }}>
                   <ResponsiveContainer width="100%" height="100%">

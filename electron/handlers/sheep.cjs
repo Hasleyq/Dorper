@@ -109,6 +109,9 @@ function registerSheepHandlers(ipcMain) {
         lineage: data.lineage || null,
         motherId: data.motherId || null,
         fatherId: data.fatherId || null,
+        customPedigree: data.customPedigree || null,
+        classificationData: data.classificationData || null,
+        breedPercentage: data.breedPercentage || '100',
       },
       include: {
         mother: { select: { id: true, earTag: true, name: true } },
@@ -135,6 +138,9 @@ function registerSheepHandlers(ipcMain) {
     if (data.lineage !== undefined) updateData.lineage = data.lineage;
     if (data.motherId !== undefined) updateData.motherId = data.motherId || null;
     if (data.fatherId !== undefined) updateData.fatherId = data.fatherId || null;
+    if (data.customPedigree !== undefined) updateData.customPedigree = data.customPedigree;
+    if (data.classificationData !== undefined) updateData.classificationData = data.classificationData;
+    if (data.breedPercentage !== undefined) updateData.breedPercentage = data.breedPercentage;
 
     const sheep = await prisma.sheep.update({
       where: { id },

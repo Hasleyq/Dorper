@@ -14,6 +14,7 @@ const { registerPhotoHandlers } = require('./handlers/photos.cjs');
 const { registerDatabaseHandlers } = require('./handlers/database.cjs');
 const { registerCalendarHandlers } = require('./handlers/calendar.cjs');
 const { registerPenHandlers } = require('./handlers/pens.cjs');
+const { registerSettingHandlers } = require('./handlers/settings.cjs');
 
 let mainWindow;
 
@@ -80,6 +81,7 @@ function registerAllHandlers() {
   registerDatabaseHandlers(ipcMain);
   registerCalendarHandlers(ipcMain);
   registerPenHandlers(ipcMain);
+  registerSettingHandlers(ipcMain);
 
   // ============================================
   // DIALOG / FILE OPERATIONS

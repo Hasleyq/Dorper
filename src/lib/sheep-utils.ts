@@ -34,10 +34,25 @@ export const SEX_ICONS: Record<string, string> = {
 
 export const HEALTH_TYPE_LABELS: Record<string, string> = {
   VACCINE: 'Szczepienie',
+  BOLUS: 'Bolus',
   DEWORMING: 'Odrobaczanie',
   VET_VISIT: 'Wizyta wet.',
   HOOF: 'Korekcja racic',
+  BLOOD: 'Pobranie krwi',
+  SHEARING: 'Strzyżenie',
+  ANTIBIOTIC: 'Antybiotyk',
 }
+
+export const DEFAULT_HEALTH_TYPES = [
+  'Szczepienie',
+  'Bolus',
+  'Odrobaczanie',
+  'Wizyta wet.',
+  'Korekcja racic',
+  'Pobranie krwi',
+  'Strzyżenie',
+  'Antybiotyk',
+]
 
 export const WEIGHT_TYPE_LABELS: Record<string, string> = {
   BIRTH: 'Urodzeniowa',
@@ -45,6 +60,20 @@ export const WEIGHT_TYPE_LABELS: Record<string, string> = {
   ADULT: 'Dorosła',
   CUSTOM: 'Inna',
 }
+
+export const DEFAULT_WEIGHT_TYPES = [
+  'Urodzeniowa',
+  'Odsadzeniowa',
+  'Dorosła',
+  'Inna',
+]
+
+export const DEFAULT_FINANCE_CATEGORIES = [
+  'Pasza',
+  'Weterynarz',
+  'Sprzedaż',
+  'Sprzęt',
+]
 
 // ============================================
 // DATE & AGE FORMATTING

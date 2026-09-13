@@ -10,6 +10,9 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  X,
+  MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dashboard } from '@/components/dashboard/Dashboard'
@@ -35,6 +38,14 @@ const navItems: { id: View; label: string; icon: React.ElementType }[] = [
   { id: 'settings', label: 'Ustawienia', icon: Settings },
 ]
 
+// Quick mobile bottom navigation items
+const mobileBottomNav: { id: View; label: string; icon: React.ElementType }[] = [
+  { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
+  { id: 'registry', label: 'Rejestr', icon: ListChecks },
+  { id: 'health', label: 'Zdrowie', icon: Heart },
+  { id: 'finances', label: 'Finanse', icon: DollarSign },
+]
+
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -56,7 +67,7 @@ function App() {
           <img
             src="/logo.png"
             alt="Logo dorper.pl"
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-emerald-600/30 shadow-sm"
+            className="h-8 w-8 rounded-full object-cover ring-2 ring-emerald-600/30 shadow-sm"
           />
           <div>
             <h1 className="text-sm font-bold tracking-tight text-foreground leading-none">dorper.pl</h1>
@@ -66,16 +77,16 @@ function App() {
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-foreground hover:bg-secondary transition-colors"
-          aria-label="Menu"
+          aria-label={mobileMenuOpen ? 'Zamknij menu' : 'Otwórz menu'}
         >
-          {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </header>
 
       {/* Mobile Drawer Navigation Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-fade-in"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -83,13 +94,13 @@ function App() {
       {/* Sidebar Navigation (Desktop & Mobile Drawer) */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out md:static md:z-auto',
-          mobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out md:static md:z-auto shadow-2xl md:shadow-none',
+          mobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0',
           sidebarCollapsed ? 'md:w-16' : 'md:w-60'
         )}
       >
         {/* Logo Area */}
-        <div className="flex h-16 items-center border-b border-border px-3.5">
+        <div className="flex h-16 items-center justify-between border-b border-border px-3.5">
           <div className="flex items-center gap-3 overflow-hidden">
             <img
               src="/logo.png"
@@ -106,6 +117,14 @@ function App() {
               </div>
             )}
           </div>
+          {mobileMenuOpen && (
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="md:hidden p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
@@ -150,8 +169,8 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
-        <div className="animate-fade-in p-6">
+      <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <div className="animate-fade-in p-3 sm:p-4 md:p-6 pb-24 md:pb-6 max-w-full">
           {/* Dashboard */}
           {currentView === 'dashboard' && <Dashboard />}
 
@@ -177,6 +196,37 @@ function App() {
           {currentView === 'settings' && <SettingsPage />}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar (Phones / Screens < 768px) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur-sm px-2 py-1.5 flex items-center justify-around shadow-lg">
+        {mobileBottomNav.map((item) => {
+          const Icon = item.icon
+          const isActive = currentView === item.id
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigateTo(item.id)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors',
+                isActive
+                  ? 'text-emerald-500 font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Icon className={cn('h-4 w-4', isActive && 'text-emerald-500')} />
+              <span>{item.label}</span>
+            </button>
+          )
+        })}
+        {/* "Więcej" button triggers drawer */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+          <span>Więcej</span>
+        </button>
+      </nav>
     </div>
   )
 }

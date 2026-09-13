@@ -13,6 +13,7 @@ const { registerTransactionHandlers } = require('../electron/handlers/transactio
 const { registerPhotoHandlers } = require('../electron/handlers/photos.cjs');
 const { registerCalendarHandlers } = require('../electron/handlers/calendar.cjs');
 const { registerPenHandlers } = require('../electron/handlers/pens.cjs');
+const { registerSettingHandlers } = require('../electron/handlers/settings.cjs');
 
 const channels = new Map();
 
@@ -32,6 +33,7 @@ registerTransactionHandlers(mockIpc);
 registerPhotoHandlers(mockIpc);
 registerCalendarHandlers(mockIpc);
 registerPenHandlers(mockIpc);
+registerSettingHandlers(mockIpc);
 
 // Web-safe database info
 channels.set('database:info', async () => {

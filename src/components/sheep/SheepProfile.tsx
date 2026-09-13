@@ -1,9 +1,33 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, FileText, Loader2, Check, AlertCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  FileText,
+  Loader2,
+  Check,
+  AlertCircle,
+  GitBranch,
+  Award,
+  Globe,
+  Download,
+} from 'lucide-react'
 import { pdf } from '@react-pdf/renderer'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   formatAge,
   checkWithdrawal,
@@ -13,12 +37,16 @@ import {
   SEX_VARIANTS,
   SEX_ICONS,
 } from '@/lib/sheep-utils'
+import { useFlockSettings } from '@/lib/flock-settings'
+import { parseClassificationData } from '@/types/pedigree'
 import { SummaryTab } from '@/components/sheep/profile/SummaryTab'
 import { GeneticsTab } from '@/components/sheep/profile/GeneticsTab'
 import { WeightsTab } from '@/components/sheep/profile/WeightsTab'
 import { HealthTab } from '@/components/sheep/profile/HealthTab'
 import { ReproductionTab } from '@/components/sheep/profile/ReproductionTab'
 import { BreedingCertificate } from '@/components/sheep/profile/BreedingCertificate'
+import { PedigreeEditorDialog } from '@/components/sheep/profile/PedigreeEditorDialog'
+import { ClassificationDialog } from '@/components/sheep/profile/ClassificationDialog'
 import type { SheepDetail } from '@/types/electron'
 
 interface SheepProfileProps {
@@ -32,6 +60,14 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
   const [error, setError] = useState<string | null>(null)
   const [pdfStatus, setPdfStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Dialog states
+  const [showCertDialog, setShowCertDialog] = useState(false)
+  const [showPedigreeDialog, setShowPedigreeDialog] = useState(false)
+  const [showClassificationDialog, setShowClassificationDialog] = useState(false)
+  const [certLang, setCertLang] = useState<'pl' | 'en'>('pl')
+
+  const { settings: flockSettings } = useFlockSettings()
 
   useEffect(() => {
     async function fetchSheep() {
@@ -61,29 +97,36 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
     fetchSheep()
   }, [sheepId, refreshKey])
 
-  // PDF generation handler
-  const handleGeneratePdf = useCallback(async () => {
+  // PDF generation handler with language support
+  const handleGeneratePdf = useCallback(async (lang: 'pl' | 'en' = certLang) => {
     if (!sheep || !window.electronAPI) return
 
     try {
       setPdfStatus('generating')
 
       // Generate PDF blob using @react-pdf/renderer
-      const blob = await pdf(<BreedingCertificate sheep={sheep} />).toBlob()
+      const blob = await pdf(
+        <BreedingCertificate
+          sheep={sheep}
+          language={lang}
+          flockSettings={flockSettings}
+        />
+      ).toBlob()
       const arrayBuffer = await blob.arrayBuffer()
 
       // Build filename: Certyfikat_PL-DRP-003_Atlas.pdf
       const namePart = sheep.name ? `_${sheep.name}` : ''
-      const defaultName = `Certyfikat_${sheep.earTag.replace(/\//g, '-')}${namePart}.pdf`
+      const prefix = lang === 'pl' ? 'Certyfikat' : 'Pedigree'
+      const defaultName = `${prefix}_${sheep.earTag.replace(/\//g, '-')}${namePart}.pdf`
 
-      // Send to main process for save dialog
+      // Send to main process / web downloader
       const savedPath = await window.electronAPI.dialog.savePdf(arrayBuffer, defaultName)
 
       if (savedPath) {
         setPdfStatus('success')
+        setShowCertDialog(false)
         setTimeout(() => setPdfStatus('idle'), 3000)
       } else {
-        // User cancelled the save dialog
         setPdfStatus('idle')
       }
     } catch (err) {
@@ -91,7 +134,7 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
       setPdfStatus('error')
       setTimeout(() => setPdfStatus('idle'), 4000)
     }
-  }, [sheep])
+  }, [sheep, certLang, flockSettings])
 
   // Loading state
   if (loading) {
@@ -121,13 +164,18 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
   }
 
   const withdrawal = checkWithdrawal(sheep.healthRecords || [])
+  const classification = parseClassificationData(sheep.classificationData)
+  const hasClassification = Boolean(
+    classification &&
+    (classification.horn || classification.conf || classification.size || classification.performedBy)
+  )
 
   // PDF button label based on status
   const pdfButtonContent = {
     idle: (
       <>
         <FileText className="h-4 w-4" />
-        Generuj Certyfikat (PDF)
+        Certyfikat (PDF)
       </>
     ),
     generating: (
@@ -191,6 +239,17 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
               <Badge variant={STATUS_VARIANTS[sheep.status]}>
                 {STATUS_LABELS[sheep.status]}
               </Badge>
+              {sheep.breedPercentage && (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-400">
+                  {sheep.breedPercentage}% Dorper
+                </Badge>
+              )}
+              {hasClassification && (
+                <Badge variant="outline" className="border-emerald-500/40 text-emerald-400">
+                  <Award className="h-3 w-3 mr-1" />
+                  Skasyfikowany ({classification.horn || 'Ocena'})
+                </Badge>
+              )}
               {withdrawal.isActive && (
                 <Badge variant="danger">
                   🔒 Karencja do {withdrawal.daysRemaining}d
@@ -200,15 +259,35 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
           </div>
 
           {/* Right — Actions */}
-          <div className="flex gap-2 sm:flex-col">
+          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
             <Button
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={handleGeneratePdf}
+              onClick={() => setShowCertDialog(true)}
               disabled={pdfStatus === 'generating'}
             >
               {pdfButtonContent[pdfStatus]}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setShowPedigreeDialog(true)}
+            >
+              <GitBranch className="h-4 w-4" />
+              Rodowód (4 pokolenia)
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setShowClassificationDialog(true)}
+            >
+              <Award className="h-4 w-4" />
+              Klasyfikacja / Ocena
             </Button>
           </div>
         </div>
@@ -229,7 +308,10 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
         </TabsContent>
 
         <TabsContent value="genetics">
-          <GeneticsTab sheep={sheep} />
+          <GeneticsTab
+            sheep={sheep}
+            onOpenPedigreeEditor={() => setShowPedigreeDialog(true)}
+          />
         </TabsContent>
 
         <TabsContent value="weights">
@@ -244,6 +326,117 @@ export function SheepProfile({ sheepId, onBack }: SheepProfileProps) {
           <ReproductionTab sheep={sheep} />
         </TabsContent>
       </Tabs>
+
+      {/* ==================== CERTIFICATE LANGUAGE DIALOG ==================== */}
+      <Dialog open={showCertDialog} onOpenChange={setShowCertDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Generuj Certyfikat Hodowlany (PDF)
+            </DialogTitle>
+            <DialogDescription>
+              Wybierz język urzędowy certyfikatu. Dokument zawiera 4 pokolenia rodowodu,
+              tabelę pomiarów oraz kartę klasyfikacji.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Język dokumentu
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCertLang('pl')}
+                  className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
+                    certLang === 'pl'
+                      ? 'border-primary bg-primary/10 text-foreground font-semibold shadow-sm'
+                      : 'border-border bg-card/60 hover:bg-card text-muted-foreground'
+                  }`}
+                >
+                  <span className="text-2xl">🇵🇱</span>
+                  <div className="text-xs">
+                    <p className="font-semibold text-foreground">Polski</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Świadectwo Pochodzenia
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCertLang('en')}
+                  className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
+                    certLang === 'en'
+                      ? 'border-primary bg-primary/10 text-foreground font-semibold shadow-sm'
+                      : 'border-border bg-card/60 hover:bg-card text-muted-foreground'
+                  }`}
+                >
+                  <span className="text-2xl">🇬🇧</span>
+                  <div className="text-xs">
+                    <p className="font-semibold text-foreground">English</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Pedigree Certificate
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border/80 bg-muted/30 p-3 text-xs space-y-1.5">
+              <p className="font-medium text-foreground">Szczegóły certyfikatu:</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px]">
+                <li>Owca: <span className="font-mono font-medium text-foreground">{sheep.earTag}</span> {sheep.name && `(${sheep.name})`}</li>
+                <li>Hodowla: <span className="font-medium text-foreground">{flockSettings.flockName || 'Nie ustawiono'}</span></li>
+                <li>Logo: {flockSettings.logoUrl ? <span className="text-emerald-400">Dołączone ✓</span> : <span className="text-amber-400">Brak (możesz dodać w Ustawieniach)</span>}</li>
+                <li>Klasyfikacja: {hasClassification ? <span className="text-emerald-400">Wypełniona ✓</span> : <span className="text-muted-foreground">Pusta tabelka na pieczątkę/wpis ✓</span>}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
+            <Button variant="ghost" size="sm" onClick={() => setShowCertDialog(false)}>
+              Anuluj
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleGeneratePdf(certLang)}
+              disabled={pdfStatus === 'generating'}
+              className="gap-2"
+            >
+              {pdfStatus === 'generating' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generowanie PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Pobierz PDF ({certLang.toUpperCase()})
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ==================== 4-GEN PEDIGREE EDITOR DIALOG ==================== */}
+      <PedigreeEditorDialog
+        open={showPedigreeDialog}
+        onOpenChange={setShowPedigreeDialog}
+        sheep={sheep}
+        onSuccess={() => setRefreshKey((k) => k + 1)}
+      />
+
+      {/* ==================== CLASSIFICATION DIALOG ==================== */}
+      <ClassificationDialog
+        open={showClassificationDialog}
+        onOpenChange={setShowClassificationDialog}
+        sheep={sheep}
+        onSuccess={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   )
 }

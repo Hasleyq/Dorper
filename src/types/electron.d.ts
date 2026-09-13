@@ -16,6 +16,9 @@ export interface SheepData {
   lineage?: string;
   motherId?: string;
   fatherId?: string;
+  customPedigree?: string;
+  classificationData?: string;
+  breedPercentage?: string;
 }
 
 export interface SheepRecord {
@@ -28,6 +31,9 @@ export interface SheepRecord {
   lineage: string | null;
   motherId: string | null;
   fatherId: string | null;
+  customPedigree?: string | null;
+  classificationData?: string | null;
+  breedPercentage?: string | null;
   mother?: SheepRecord | null;
   father?: SheepRecord | null;
   childrenAsMother?: SheepRecord[];
@@ -239,6 +245,11 @@ export interface ElectronAPI {
     update: (id: string, data: { name: string; description?: string }) => Promise<PenData>;
     create: (data: { name: string; description?: string }) => Promise<PenData>;
     delete: (id: string) => Promise<void>;
+  };
+  settings: {
+    get: (key: string) => Promise<string | null>;
+    set: (key: string, value: any) => Promise<string>;
+    getAll: () => Promise<Record<string, string>>;
   };
 }
 

@@ -25,7 +25,11 @@ import {
   RefreshCw,
   Loader2,
   Download,
+  Pill,
 } from 'lucide-react'
+import { DEFAULT_HEALTH_TYPES } from '@/lib/sheep-utils'
+import { useCustomOptions } from '@/lib/custom-options'
+import { OptionSelectWithAdd } from '@/components/ui/option-select-with-add'
 import type { GlobalHealthRecord, SheepRecord } from '@/types/electron'
 
 // ============================================
@@ -36,9 +40,15 @@ const HEALTH_TYPE_STYLES: Record<
   { variant: 'default' | 'secondary' | 'warning' | 'active'; icon: React.ElementType }
 > = {
   VACCINE: { variant: 'default', icon: Syringe },
+  Szczepienie: { variant: 'default', icon: Syringe },
+  BOLUS: { variant: 'active', icon: Pill },
+  Bolus: { variant: 'active', icon: Pill },
   DEWORMING: { variant: 'warning', icon: Bug },
+  Odrobaczanie: { variant: 'warning', icon: Bug },
   VET_VISIT: { variant: 'active', icon: Stethoscope },
+  'Wizyta wet.': { variant: 'active', icon: Stethoscope },
   HOOF: { variant: 'secondary', icon: Scissors },
+  'Korekcja racic': { variant: 'secondary', icon: Scissors },
 }
 
 export function HealthPage() {
@@ -114,21 +124,21 @@ export function HealthPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Zdrowie stada</h2>
           <p className="text-sm text-muted-foreground">
             Kompletna kartoteka zdrowia wszystkich owiec
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchRecords} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Odśwież
+            <span className="hidden sm:inline">Odśwież</span>
           </Button>
           <Button size="sm" onClick={() => { setSelectedSheepId(undefined); setEditingRecord(null); setShowAdd(true) }}>
             <Plus className="h-4 w-4" />
-            Dodaj wpis zdrowotny
+            Dodaj wpis
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowMass(true)}>
             <Plus className="h-4 w-4" />
@@ -136,7 +146,7 @@ export function HealthPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0}>
             <Download className="h-4 w-4" />
-            Eksportuj do CSV
+            <span className="hidden sm:inline">Eksport CSV</span>
           </Button>
         </div>
       </div>
@@ -357,9 +367,10 @@ function GlobalAddHealthDialog({
   const [sheepId, setSheepId] = useState<string | undefined>(undefined)
   const [sheepError, setSheepError] = useState(false)
   const isEditing = !!editingRecord?.id
-  const [ghTypeSelect, setGhTypeSelect] = useState<string>('')
-  const [ghCustomType, setGhCustomType] = useState<string>('')
-  const ghShowCustom = ghTypeSelect === GH_CUSTOM_KEY
+  const { options: healthOptions, addOption: addHealthOption } = useCustomOptions(
+    'health_types',
+    DEFAULT_HEALTH_TYPES
+  )
 
   const {
     register,
@@ -381,26 +392,12 @@ function GlobalAddHealthDialog({
     },
   })
 
-  // Sync Select → form value for type
-  useEffect(() => {
-    if (ghTypeSelect === GH_CUSTOM_KEY) {
-      setValue('type', ghCustomType)
-    } else {
-      setValue('type', ghTypeSelect)
-    }
-  }, [ghTypeSelect, ghCustomType, setValue])
+  const currentType = watch('type')
 
   // Pre-fill when editing
   useEffect(() => {
     if (editingRecord) {
       const t = String(editingRecord.type ?? '')
-      if (GH_TYPE_OPTIONS.includes(t)) {
-        setGhTypeSelect(t)
-        setGhCustomType('')
-      } else {
-        setGhTypeSelect(GH_CUSTOM_KEY)
-        setGhCustomType(t)
-      }
       reset({
         date: toInputDate(editingRecord.date),
         type: t,
@@ -411,8 +408,6 @@ function GlobalAddHealthDialog({
       })
       setSheepId(editingRecord.sheepId)
     } else {
-      setGhTypeSelect('')
-      setGhCustomType('')
       reset({
         date: toInputDate(null),
         type: '',
@@ -503,26 +498,15 @@ function GlobalAddHealthDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Typ zabiegu *</Label>
-              <Select value={ghTypeSelect} onValueChange={setGhTypeSelect}>
-                <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Wybierz typ..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {GH_TYPE_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                  <SelectItem value={GH_CUSTOM_KEY}>Inne...</SelectItem>
-                </SelectContent>
-              </Select>
-              {ghShowCustom && (
-                <Input
-                  placeholder="Wpisz własny typ zabiegu..."
-                  value={ghCustomType}
-                  onChange={(e) => setGhCustomType(e.target.value)}
-                  className="mt-1.5"
-                  autoFocus
-                />
-              )}
+              <OptionSelectWithAdd
+                value={currentType || ''}
+                onValueChange={(val) => setValue('type', val, { shouldValidate: true })}
+                options={healthOptions}
+                onAddOption={addHealthOption}
+                placeholder="Wybierz lub dodaj typ..."
+                error={!!errors.type}
+                addPlaceholder="Wpisz nowy typ zabiegu..."
+              />
               {errors.type && <p className="text-xs text-red-400">{errors.type.message}</p>}
             </div>
           </div>

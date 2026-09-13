@@ -14,6 +14,9 @@ model Sheep {
   birthDate   DateTime
   status      String    // "ACTIVE", "SOLD", "DEAD"
   lineage     String?
+  customPedigree     String?
+  classificationData String?
+  breedPercentage    String?   @default("100")
 
   motherId    String?
   mother      Sheep?    @relation("MotherToChild", fields: [motherId], references: [id])
@@ -124,4 +127,9 @@ model Evaluation {
   sheepId     String
   sheep       Sheep    @relation(fields: [sheepId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+}
+
+model AppSetting {
+  key   String @id
+  value String
 }

@@ -9,12 +9,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { SEX_ICONS, SEX_LABELS, SEX_VARIANTS, formatDate, formatAge } from '@/lib/sheep-utils'
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, GitBranch, Edit3 } from 'lucide-react'
 import { PedigreeFlow } from './PedigreeFlow'
+import { parseCustomPedigree } from '@/types/pedigree'
 import type { SheepDetail } from '@/types/electron'
 
 interface GeneticsTabProps {
   sheep: SheepDetail
+  onOpenPedigreeEditor?: () => void
 }
 
 // ============================================
@@ -26,12 +28,12 @@ function AncestorCard({
   depth,
 }: {
   label: string
-  ancestor: { id: string; earTag: string; name?: string | null; sex?: string } | null | undefined
+  ancestor: { id: string; earTag: string; name?: string | null; sex?: string; breedPurity?: string } | null | undefined
   depth: 'parent' | 'grandparent'
 }) {
   const isGrandparent = depth === 'grandparent'
 
-  if (!ancestor) {
+  if (!ancestor || (!ancestor.earTag && !ancestor.name)) {
     return (
       <div
         className={`flex flex-col justify-center rounded-lg border border-dashed border-border bg-card/30 p-3 ${
@@ -50,16 +52,21 @@ function AncestorCard({
         isGrandparent ? 'min-h-[60px]' : 'min-h-[72px]'
       }`}
     >
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        {ancestor.breedPurity && (
+          <span className="text-[10px] font-medium text-amber-400/80">{ancestor.breedPurity}%</span>
+        )}
+      </div>
       <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm font-semibold">{ancestor.name || ancestor.earTag}</p>
+        <p className="text-sm font-semibold truncate">{ancestor.name || ancestor.earTag}</p>
         {ancestor.sex && (
           <Badge variant={SEX_VARIANTS[ancestor.sex]} className="text-[10px] px-1 py-0">
             {SEX_ICONS[ancestor.sex]}
           </Badge>
         )}
       </div>
-      <p className="font-mono text-[11px] text-muted-foreground">{ancestor.earTag}</p>
+      <p className="font-mono text-[11px] text-muted-foreground truncate">{ancestor.earTag}</p>
     </div>
   )
 }
@@ -71,31 +78,101 @@ function ConnectingLine() {
   return <div className="flex items-center justify-center"><div className="h-px w-6 bg-border" /></div>
 }
 
-export function GeneticsTab({ sheep }: GeneticsTabProps) {
+export function GeneticsTab({ sheep, onOpenPedigreeEditor }: GeneticsTabProps) {
   const [flowModalOpen, setFlowModalOpen] = useState(false)
+  const custom = parseCustomPedigree(sheep.customPedigree)
 
-  const father = sheep.father
-  const mother = sheep.mother
+  // Father: DB sheep.father or custom?.father
+  const father = sheep.father || (custom?.father?.tag || custom?.father?.name ? {
+    id: 'custom-f',
+    earTag: custom.father.tag,
+    name: custom.father.name,
+    sex: 'RAM',
+    breedPurity: custom.father.breedPurity,
+  } : null)
 
-  // Grandparents from father
-  const paternalGrandfather = (father as any)?.father || null
-  const paternalGrandmother = (father as any)?.mother || null
+  // Mother: DB sheep.mother or custom?.mother
+  const mother = sheep.mother || (custom?.mother?.tag || custom?.mother?.name ? {
+    id: 'custom-m',
+    earTag: custom.mother.tag,
+    name: custom.mother.name,
+    sex: 'EWE',
+    breedPurity: custom.mother.breedPurity,
+  } : null)
 
-  // Grandparents from mother
-  const maternalGrandfather = (mother as any)?.father || null
-  const maternalGrandmother = (mother as any)?.mother || null
+  // Paternal Grandfather
+  const paternalGrandfather = (sheep.father as any)?.father || (custom?.fatherFather?.tag || custom?.fatherFather?.name ? {
+    id: 'custom-ff',
+    earTag: custom.fatherFather.tag,
+    name: custom.fatherFather.name,
+    sex: 'RAM',
+    breedPurity: custom.fatherFather.breedPurity,
+  } : null)
+
+  // Paternal Grandmother
+  const paternalGrandmother = (sheep.father as any)?.mother || (custom?.fatherMother?.tag || custom?.fatherMother?.name ? {
+    id: 'custom-fm',
+    earTag: custom.fatherMother.tag,
+    name: custom.fatherMother.name,
+    sex: 'EWE',
+    breedPurity: custom.fatherMother.breedPurity,
+  } : null)
+
+  // Maternal Grandfather
+  const maternalGrandfather = (sheep.mother as any)?.father || (custom?.motherFather?.tag || custom?.motherFather?.name ? {
+    id: 'custom-mf',
+    earTag: custom.motherFather.tag,
+    name: custom.motherFather.name,
+    sex: 'RAM',
+    breedPurity: custom.motherFather.breedPurity,
+  } : null)
+
+  // Maternal Grandmother
+  const maternalGrandmother = (sheep.mother as any)?.mother || (custom?.motherMother?.tag || custom?.motherMother?.name ? {
+    id: 'custom-mm',
+    earTag: custom.motherMother.tag,
+    name: custom.motherMother.name,
+    sex: 'EWE',
+    breedPurity: custom.motherMother.breedPurity,
+  } : null)
+
+  const hasCustomAncestors = Boolean(
+    custom && (
+      custom.father?.tag || custom.mother?.tag ||
+      custom.fatherFather?.tag || custom.fatherMother?.tag ||
+      custom.fff?.tag || custom.ffff?.tag
+    )
+  )
 
   return (
     <div className="space-y-6">
       {/* Header with action */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="rounded-xl border border-border bg-card p-4 flex-1">
-          <h3 className="text-sm font-semibold">Rodowód — 2 pokolenia</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold">Rodowód hodowlany</h3>
+            {hasCustomAncestors && (
+              <Badge variant="outline" className="border-primary/40 text-primary text-[10px]">
+                Zdefiniowane 4 pokolenia
+              </Badge>
+            )}
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Drzewo genealogiczne na podstawie danych rejestru hodowlanego
+            Drzewo genealogiczne na podstawie rejestru oraz ręcznie wprowadzonych przodków (dla tryków i matek z zewnątrz)
           </p>
         </div>
-        <div className="ml-3">
+        <div className="flex flex-wrap gap-2 shrink-0">
+          {onOpenPedigreeEditor && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenPedigreeEditor}
+              className="gap-2"
+            >
+              <Edit3 className="h-4 w-4" />
+              Edytuj rodowód (4 pok.)
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -103,7 +180,7 @@ export function GeneticsTab({ sheep }: GeneticsTabProps) {
             className="gap-2"
           >
             <Maximize2 className="h-4 w-4" />
-            Pokaż pełne drzewo
+            Wykres interaktywny
           </Button>
         </div>
       </div>

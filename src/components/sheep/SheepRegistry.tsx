@@ -213,31 +213,32 @@ export function SheepRegistry({ onViewSheep }: SheepRegistryProps) {
     <>
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Rejestr stada</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Zarządzaj kompletną bazą danych owiec Dorper
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchSheep} disabled={loading}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchSheep} disabled={loading} className="shrink-0">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Odśwież
+            <span>Odśwież</span>
           </Button>
-          <Button size="sm" onClick={() => { setEditingSheep(null); setShowForm(true) }}>
+          <Button size="sm" onClick={() => { setEditingSheep(null); setShowForm(true) }} className="shrink-0">
             <Plus className="h-4 w-4" />
             Dodaj owcę
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={sheep.length === 0}>
+          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={sheep.length === 0} className="shrink-0">
             <Download className="h-4 w-4" />
-            Eksportuj do CSV
+            <span className="hidden sm:inline">Eksportuj do CSV</span>
+            <span className="sm:hidden">CSV</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Łącznie w rejestrze"
           value={stats.total}

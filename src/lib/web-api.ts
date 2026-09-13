@@ -145,6 +145,13 @@ export function initWebApiBridge() {
       create: (data: any) => rpcCall('pens:create', data),
       delete: (id: string) => rpcCall('pens:delete', id),
     },
+
+    // Settings
+    settings: {
+      get: (key: string) => rpcCall('settings:get', key),
+      set: (key: string, value: any) => rpcCall('settings:set', key, value),
+      getAll: () => rpcCall('settings:getAll'),
+    },
   };
 
   console.log('🌐 Web API Bridge initialized — connected to database via HTTP RPC');

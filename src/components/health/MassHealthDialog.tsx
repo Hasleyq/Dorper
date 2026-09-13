@@ -18,17 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Check } from 'lucide-react'
+import { DEFAULT_HEALTH_TYPES } from '@/lib/sheep-utils'
+import { useCustomOptions } from '@/lib/custom-options'
+import { OptionSelectWithAdd } from '@/components/ui/option-select-with-add'
 import type { SheepRecord } from '@/types/electron'
-
-const MASS_CUSTOM_KEY = '__INNE__'
-
-// ============================================
-// Suggestion presets
-// ============================================
-const TYPE_SUGGESTIONS = [
-  'Szczepienie', 'Odrobaczanie', 'Wizyta wet.', 'Korekcja racic',
-  'Pobranie krwi', 'Kąpiel', 'Strzyżenie', 'Antybiotyk',
-]
 
 interface MassHealthDialogProps {
   open: boolean
@@ -40,12 +33,14 @@ interface MassHealthDialogProps {
 export function MassHealthDialog({ open, onOpenChange, allSheep, onSuccess }: MassHealthDialogProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
+  const { options: healthOptions, addOption: addHealthOption } = useCustomOptions(
+    'health_types',
+    DEFAULT_HEALTH_TYPES
+  )
 
   // Form state
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [typeSelect, setTypeSelect] = useState('')
-  const [customType, setCustomType] = useState('')
-  const type = typeSelect === MASS_CUSTOM_KEY ? customType : typeSelect
+  const [type, setType] = useState('')
   const [description, setDescription] = useState('')
   const [medication, setMedication] = useState('')
   const [withdrawalDays, setWithdrawalDays] = useState('')
@@ -87,8 +82,7 @@ export function MassHealthDialog({ open, onOpenChange, allSheep, onSuccess }: Ma
       })
       // Reset
       setSelectedIds(new Set())
-      setTypeSelect('')
-      setCustomType('')
+      setType('')
       setDescription('')
       setMedication('')
       setWithdrawalDays('')
@@ -156,26 +150,14 @@ export function MassHealthDialog({ open, onOpenChange, allSheep, onSuccess }: Ma
             </div>
             <div className="space-y-1.5">
               <Label>Typ zabiegu *</Label>
-              <Select value={typeSelect} onValueChange={setTypeSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz typ..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_SUGGESTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                  <SelectItem value={MASS_CUSTOM_KEY}>Inne...</SelectItem>
-                </SelectContent>
-              </Select>
-              {typeSelect === MASS_CUSTOM_KEY && (
-                <Input
-                  placeholder="Wpisz własny typ..."
-                  value={customType}
-                  onChange={(e) => setCustomType(e.target.value)}
-                  className="mt-1.5"
-                  autoFocus
-                />
-              )}
+              <OptionSelectWithAdd
+                value={type}
+                onValueChange={setType}
+                options={healthOptions}
+                onAddOption={addHealthOption}
+                placeholder="Wybierz lub dodaj typ..."
+                addPlaceholder="Wpisz nowy typ zabiegu..."
+              />
             </div>
           </div>
 

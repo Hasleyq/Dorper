@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Database,
   Download,
@@ -11,7 +13,13 @@ import {
   HardDrive,
   Cpu,
   Calendar,
+  Building,
+  Upload,
+  Trash2,
+  Save,
+  Image as ImageIcon,
 } from 'lucide-react'
+import { useFlockSettings } from '@/lib/flock-settings'
 import type { DatabaseInfo } from '@/types/electron'
 
 export function SettingsPage() {
@@ -68,6 +76,32 @@ export function SettingsPage() {
     }
   }
 
+  const { settings: flockSettings, saveSettings: saveFlockSettings, saving: savingFlock } = useFlockSettings()
+  const [formFlock, setFormFlock] = useState(flockSettings)
+  const [flockSavedMsg, setFlockSavedMsg] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setFormFlock(flockSettings)
+  }, [flockSettings])
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormFlock((prev) => ({ ...prev, logoUrl: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveFlock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await saveFlockSettings(formFlock)
+    setFlockSavedMsg(true)
+    setTimeout(() => setFlockSavedMsg(false), 3000)
+  }
+
   const today = new Date().toLocaleDateString('pl-PL', {
     year: 'numeric',
     month: '2-digit',
@@ -80,8 +114,140 @@ export function SettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Ustawienia</h2>
         <p className="text-sm text-muted-foreground">
-          Zarządzanie bazą danych i informacje o systemie
+          Dane hodowli, logo na certyfikat, bezpieczeństwo bazy i system
         </p>
+      </div>
+
+      {/* ============================================ */}
+      {/* Section 0: Flock Profile & Certificate Logo */}
+      {/* ============================================ */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
+              <Building className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Dane hodowli & Logo na Certyfikat</h3>
+              <p className="text-xs text-muted-foreground">
+                Informacje te i logo zostaną automatycznie umieszczone na certyfikatach hodowlanych PDF
+              </p>
+            </div>
+          </div>
+          {flockSavedMsg && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 animate-fade-in">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Zapisano dane hodowli
+            </span>
+          )}
+        </div>
+
+        <form onSubmit={handleSaveFlock} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="flockName">Nazwa hodowli</Label>
+              <Input
+                id="flockName"
+                value={formFlock.flockName}
+                onChange={(e) => setFormFlock({ ...formFlock, flockName: e.target.value })}
+                placeholder="np. DORPER BARWAŁD / KULLA GÅRD"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="breederName">Właściciel / Hodowca</Label>
+              <Input
+                id="breederName"
+                value={formFlock.breederName}
+                onChange={(e) => setFormFlock({ ...formFlock, breederName: e.target.value })}
+                placeholder="np. Bartosz Wróbel"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="address">Adres / Miejscowość</Label>
+              <Input
+                id="address"
+                value={formFlock.address}
+                onChange={(e) => setFormFlock({ ...formFlock, address: e.target.value })}
+                placeholder="np. 34-130 Barwałd Górny"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="flockId">Numer stada / Numer gospodarstwa (PL / SE)</Label>
+              <Input
+                id="flockId"
+                value={formFlock.flockId}
+                onChange={(e) => setFormFlock({ ...formFlock, flockId: e.target.value })}
+                placeholder="np. PL-123456789 lub SE8353"
+              />
+            </div>
+          </div>
+
+          {/* Logo upload */}
+          <div className="rounded-lg border border-border p-4 bg-slate-50 space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Logo Twojej hodowli (na certyfikat PDF)
+            </Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-card overflow-hidden shadow-inner">
+                {formFlock.logoUrl ? (
+                  <img
+                    src={formFlock.logoUrl}
+                    alt="Logo hodowli"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2 text-center sm:text-left">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoUpload}
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                />
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {formFlock.logoUrl ? 'Zmień logo' : 'Wgraj logo hodowli'}
+                  </Button>
+                  {formFlock.logoUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFormFlock({ ...formFlock, logoUrl: null })}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Usuń logo
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Format: PNG, JPG, WebP. Logo zostanie wygenerowane na certyfikacie PDF w nagłówku i stopce.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button type="submit" size="sm" disabled={savingFlock} className="gap-2">
+              {savingFlock ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Zapisz dane hodowli
+            </Button>
+          </div>
+        </form>
       </div>
 
       {/* ============================================ */}

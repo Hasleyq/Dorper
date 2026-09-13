@@ -110,4 +110,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     create: (data) => ipcRenderer.invoke('pens:create', data),
     delete: (id) => ipcRenderer.invoke('pens:delete', id),
   },
+  settings: {
+    get: (key) => ipcRenderer.invoke('settings:get', key),
+    set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+    getAll: () => ipcRenderer.invoke('settings:getAll'),
+  },
 });
+

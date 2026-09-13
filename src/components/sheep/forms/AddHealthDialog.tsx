@@ -20,24 +20,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, AlertTriangle } from 'lucide-react'
-import { toInputDate } from '@/lib/sheep-utils'
+import { toInputDate, DEFAULT_HEALTH_TYPES } from '@/lib/sheep-utils'
+import { useCustomOptions } from '@/lib/custom-options'
+import { OptionSelectWithAdd } from '@/components/ui/option-select-with-add'
 import type { HealthRecordData } from '@/types/electron'
-
-// ============================================
-// Predefined types
-// ============================================
-const TYPE_OPTIONS = [
-  'Szczepienie',
-  'Odrobaczanie',
-  'Wizyta wet.',
-  'Korekcja racic',
-  'Pobranie krwi',
-  'Kąpiel',
-  'Strzyżenie',
-  'Antybiotyk',
-]
-
-const CUSTOM_KEY = '__INNE__'
 
 // ============================================
 // Validation schema
@@ -77,10 +63,11 @@ export function AddHealthDialog({
   editingRecord,
 }: AddHealthDialogProps) {
   const [submitting, setSubmitting] = useState(false)
-  const [typeSelect, setTypeSelect] = useState<string>('')
-  const [customType, setCustomType] = useState<string>('')
+  const { options: healthOptions, addOption: addHealthOption } = useCustomOptions(
+    'health_types',
+    DEFAULT_HEALTH_TYPES
+  )
   const isEditing = !!editingRecord?.id
-  const showCustomInput = typeSelect === CUSTOM_KEY
 
   const {
     register,
@@ -101,26 +88,12 @@ export function AddHealthDialog({
     },
   })
 
-  // Sync Select → form value
-  useEffect(() => {
-    if (typeSelect === CUSTOM_KEY) {
-      setValue('type', customType)
-    } else {
-      setValue('type', typeSelect)
-    }
-  }, [typeSelect, customType, setValue])
+  const currentType = watch('type')
 
   // Pre-fill when editing
   useEffect(() => {
     if (editingRecord) {
       const t = String(editingRecord.type ?? '')
-      if (TYPE_OPTIONS.includes(t)) {
-        setTypeSelect(t)
-        setCustomType('')
-      } else {
-        setTypeSelect(CUSTOM_KEY)
-        setCustomType(t)
-      }
       reset({
         date: toInputDate(editingRecord.date),
         type: t,
@@ -130,8 +103,6 @@ export function AddHealthDialog({
         cost: editingRecord.cost != null ? String(editingRecord.cost) : '',
       })
     } else {
-      setTypeSelect('')
-      setCustomType('')
       reset({
         date: toInputDate(null),
         type: '',
@@ -208,26 +179,15 @@ export function AddHealthDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Typ zabiegu *</Label>
-              <Select value={typeSelect} onValueChange={setTypeSelect}>
-                <SelectTrigger className={errors.type ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Wybierz typ..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                  <SelectItem value={CUSTOM_KEY}>Inne...</SelectItem>
-                </SelectContent>
-              </Select>
-              {showCustomInput && (
-                <Input
-                  placeholder="Wpisz własny typ zabiegu..."
-                  value={customType}
-                  onChange={(e) => setCustomType(e.target.value)}
-                  className="mt-1.5"
-                  autoFocus
-                />
-              )}
+              <OptionSelectWithAdd
+                value={currentType || ''}
+                onValueChange={(val) => setValue('type', val, { shouldValidate: true })}
+                options={healthOptions}
+                onAddOption={addHealthOption}
+                placeholder="Wybierz lub dodaj typ..."
+                error={!!errors.type}
+                addPlaceholder="Wpisz nowy typ zabiegu..."
+              />
               {errors.type && <p className="text-xs text-red-400">{errors.type.message}</p>}
             </div>
           </div>
