@@ -55,21 +55,18 @@ app.use((_req, res) => {
   }
 });
 
-const primaryPort = Number(PORT) || 3000;
-app.listen(primaryPort, '0.0.0.0', () => {
-  console.log(`🚀 Dorper Web Application running on http://0.0.0.0:${primaryPort}`);
-  if (process.env.DATABASE_URL) {
-    console.log('🔗 Database connected via PostgreSQL DATABASE_URL');
-  }
-});
+const portsToListen = new Set([Number(PORT) || 3000, 3000, 8080]);
 
-// Also listen on 8080 if primary port is 3000 to catch custom Railway port configurations
-if (primaryPort !== 8080) {
+for (const p of portsToListen) {
   try {
-    app.listen(8080, '0.0.0.0', () => {
-      console.log('🚀 Secondary listener active on http://0.0.0.0:8080');
+    app.listen(p, '0.0.0.0', () => {
+      console.log(`🚀 Dorper Web Application listening on http://0.0.0.0:${p}`);
     });
   } catch (err) {
-    // Ignore if port 8080 is unavailable
+    console.log(`Port ${p} could not be bound:`, err.message);
   }
+}
+
+if (process.env.DATABASE_URL) {
+  console.log('🔗 Database connected via PostgreSQL DATABASE_URL');
 }
