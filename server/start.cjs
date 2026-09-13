@@ -19,4 +19,4 @@ if (databaseUrl) {
 }
 
 // Start the Express web server
-require('./index.js');
+require('./index.cjs');

@@ -35,14 +35,14 @@ app.post('/api/rpc', async (req, res) => {
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
 
-// Fallback to index.html for SPA routing
-app.get('*', (_req, res) => {
+// Fallback to index.html for SPA routing (Express 5 compatible)
+app.use((_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Dorper Web Application running on http://0.0.0.0:${PORT}`);
   if (process.env.DATABASE_URL) {
-    console.log(`🔗 Database connected via PostgreSQL DATABASE_URL`);
+    console.log('🔗 Database connected via PostgreSQL DATABASE_URL');
   }
 });
