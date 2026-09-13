@@ -71,9 +71,11 @@ const CATEGORY_COLORS: Record<string, 'default' | 'secondary' | 'warning' | 'act
 }
 
 // ============================================
-// Main FinancesPage
-// ============================================
-export function FinancesPage() {
+interface FinancesPageProps {
+  onViewSheep?: (id: string) => void
+}
+
+export function FinancesPage({ onViewSheep }: FinancesPageProps = {}) {
   const [transactions, setTransactions] = useState<TransactionData[]>([])
   const [summary, setSummary] = useState<TransactionSummary | null>(null)
   const [allSheep, setAllSheep] = useState<SheepRecord[]>([])
@@ -249,8 +251,14 @@ export function FinancesPage() {
                   </TableCell>
                   <TableCell>
                     {txn.sheep ? (
-                      <div>
-                        <p className="text-sm font-medium">{txn.sheep.name || txn.sheep.earTag}</p>
+                      <div
+                        className={onViewSheep && txn.sheep.id ? 'cursor-pointer group' : ''}
+                        onClick={() => onViewSheep && txn.sheep?.id && onViewSheep(txn.sheep.id)}
+                        title={onViewSheep && txn.sheep.id ? 'Kliknij, aby otworzyć profil owcy' : undefined}
+                      >
+                        <p className={`text-sm font-medium ${onViewSheep && txn.sheep.id ? 'group-hover:text-primary group-hover:underline' : ''}`}>
+                          {txn.sheep.name || txn.sheep.earTag}
+                        </p>
                         <p className="font-mono text-[10px] text-muted-foreground">{txn.sheep.earTag}</p>
                       </div>
                     ) : (

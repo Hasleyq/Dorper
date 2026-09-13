@@ -71,6 +71,7 @@ model Litter {
   mother        Sheep     @relation("LitterMother", fields: [motherId], references: [id], onDelete: Restrict)
   fatherId      String?
   father        Sheep?    @relation("LitterFather", fields: [fatherId], references: [id], onDelete: SetNull)
+  lambsData     String?   // JSON array of [{ earTag, name, sex, sheepId }]
   createdAt     DateTime  @default(now())
 }
 
@@ -112,11 +113,15 @@ model CalendarEvent {
 }
 
 model Pen {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   description String?
+  isArchived  Boolean   @default(false)
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  historyData String?   // JSON snapshot of ram, ewes, lambs born, notes, closedAt
   sheep       Sheep[]
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }
 
 model Evaluation {

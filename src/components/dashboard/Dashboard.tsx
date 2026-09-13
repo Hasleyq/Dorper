@@ -22,6 +22,7 @@ import {
   Calendar,
   Loader2,
   Box,
+  Baby,
 } from 'lucide-react'
 import {
   checkWithdrawal,
@@ -81,6 +82,7 @@ function StatCard({
   accent,
   alert,
   suffix,
+  subtitle,
 }: {
   label: string
   value: number | string
@@ -88,6 +90,7 @@ function StatCard({
   accent: string
   alert?: boolean
   suffix?: string
+  subtitle?: string
 }) {
   return (
     <div
@@ -104,6 +107,9 @@ function StatCard({
               <span className="ml-1 text-xs sm:text-sm font-normal text-muted-foreground">{suffix}</span>
             )}
           </p>
+          {subtitle && (
+            <p className="mt-0.5 text-[10px] font-medium text-muted-foreground truncate">{subtitle}</p>
+          )}
         </div>
         <div className={`flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ${accent}`}>
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -116,7 +122,7 @@ function StatCard({
 // ============================================
 // Main Dashboard Component
 // ============================================
-export function Dashboard() {
+export function Dashboard({ onViewSheep }: { onViewSheep?: (id: string) => void } = {}) {
   const [sheep, setSheep] = useState<SheepRecord[]>([])
   const [financials, setFinancials] = useState<TransactionSummary | null>(null)
   const [pensData, setPensData] = useState<PenData[]>([])
@@ -149,11 +155,31 @@ export function Dashboard() {
     fetchDashboardData()
   }, [])
 
-  // Compute stats
+  // Compute stats including calendar year youth logic
   const stats = useMemo(() => {
+    const currentYear = new Date().getFullYear()
     const active = sheep.filter((s) => s.status === 'ACTIVE')
-    const rams = active.filter((s) => s.sex === 'MALE')
-    const ewes = active.filter((s) => s.sex === 'FEMALE')
+
+    // Młodzież: urodzone w bieżącym roku kalendarzowym
+    const youth = active.filter((s) => {
+      const bYear = new Date(s.birthDate).getFullYear()
+      return bYear === currentYear
+    })
+    const youthRams = youth.filter((s) => s.sex === 'MALE').length
+    const youthEwes = youth.filter((s) => s.sex === 'FEMALE').length
+    const youthTotal = youth.length
+
+    // Dorosłe: urodzone przed bieżącym rokiem kalendarzowym
+    const adultRams = active.filter((s) => {
+      const bYear = new Date(s.birthDate).getFullYear()
+      return s.sex === 'MALE' && bYear < currentYear
+    }).length
+
+    const adultEwes = active.filter((s) => {
+      const bYear = new Date(s.birthDate).getFullYear()
+      return s.sex === 'FEMALE' && bYear < currentYear
+    }).length
+
     const withWithdrawal = sheep.filter((s) =>
       checkWithdrawal(s.healthRecords || []).isActive
     )
@@ -163,9 +189,13 @@ export function Dashboard() {
       .slice(0, 5)
 
     return {
+      currentYear,
       total: active.length,
-      rams: rams.length,
-      ewes: ewes.length,
+      adultRams,
+      adultEwes,
+      youthTotal,
+      youthRams,
+      youthEwes,
       withdrawals: withWithdrawal,
       withdrawalCount: withWithdrawal.length,
       recentSheep,
@@ -258,7 +288,7 @@ export function Dashboard() {
       </div>
 
       {/* ==================== STATS ROW ==================== */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Stado ogółem"
           value={stats.total}
@@ -267,15 +297,23 @@ export function Dashboard() {
           suffix="szt."
         />
         <StatCard
-          label="Aktywne tryki"
-          value={stats.rams}
+          label={`Młodzież (${stats.currentYear})`}
+          value={stats.youthTotal}
+          icon={Baby}
+          accent="bg-amber-500/15 text-amber-400"
+          suffix="szt."
+          subtitle={stats.youthTotal > 0 ? `♂ ${stats.youthRams} tryczki · ♀ ${stats.youthEwes} jarki` : 'Brak w tym roku'}
+        />
+        <StatCard
+          label="Tryki dorosłe"
+          value={stats.adultRams}
           icon={Mars}
           accent="bg-sky-500/15 text-sky-400"
           suffix="♂"
         />
         <StatCard
-          label="Aktywne owce"
-          value={stats.ewes}
+          label="Owce dorosłe"
+          value={stats.adultEwes}
           icon={Venus}
           accent="bg-pink-500/15 text-pink-400"
           suffix="♀"
@@ -464,10 +502,13 @@ export function Dashboard() {
                   return (
                     <div
                       key={s.id}
-                      className="flex items-center justify-between rounded-lg bg-red-500/5 px-3 py-2"
+                      onClick={() => onViewSheep && onViewSheep(s.id)}
+                      className={`flex items-center justify-between rounded-lg bg-red-500/5 px-3 py-2 transition-colors ${
+                        onViewSheep ? 'cursor-pointer hover:bg-red-500/10' : ''
+                      }`}
                     >
                       <div>
-                        <p className="text-sm font-medium">{s.name || s.earTag}</p>
+                        <p className="text-sm font-medium hover:text-primary transition-colors">{s.name || s.earTag}</p>
                         <p className="font-mono text-[10px] text-muted-foreground">
                           {s.earTag}
                         </p>
@@ -493,12 +534,15 @@ export function Dashboard() {
                 {stats.recentSheep.map((s) => (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2.5 transition-colors hover:bg-secondary/50"
+                    onClick={() => onViewSheep && onViewSheep(s.id)}
+                    className={`flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2.5 transition-colors hover:bg-secondary/60 ${
+                      onViewSheep ? 'cursor-pointer' : ''
+                    }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="text-xs">{SEX_ICONS[s.sex]}</span>
                       <div>
-                        <p className="text-sm font-medium">{s.name || s.earTag}</p>
+                        <p className="text-sm font-medium hover:text-primary transition-colors">{s.name || s.earTag}</p>
                         <p className="font-mono text-[10px] text-muted-foreground">
                           {s.earTag}
                         </p>

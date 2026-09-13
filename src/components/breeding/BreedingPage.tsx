@@ -37,17 +37,17 @@ import type { SheepRecord, LitterData } from '@/types/electron'
 // ============================================
 // Breeding Page — wraps Inbreeding Checker + Lambing Log
 // ============================================
-export function BreedingPage() {
+export function BreedingPage({ onViewSheep }: { onViewSheep?: (id: string) => void } = {}) {
   return (
     <div className="space-y-10 animate-fade-in">
       {/* Inbreeding Checker */}
-      <InbreedingChecker />
+      <InbreedingChecker onViewSheep={onViewSheep} />
 
       {/* Divider */}
       <div className="border-t border-border" />
 
       {/* Lambing Log */}
-      <LambingLog />
+      <LambingLog onViewSheep={onViewSheep} />
     </div>
   )
 }
@@ -55,7 +55,7 @@ export function BreedingPage() {
 // ============================================
 // Lambing Log (Dziennik Wykotów)
 // ============================================
-function LambingLog() {
+function LambingLog({ onViewSheep }: { onViewSheep?: (id: string) => void }) {
   const [litters, setLitters] = useState<LitterData[]>([])
   const [allSheep, setAllSheep] = useState<SheepRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -151,6 +151,7 @@ function LambingLog() {
                 <TableHead className="text-xs uppercase tracking-wider">Data wykotu</TableHead>
                 <TableHead className="text-xs uppercase tracking-wider">Owca ♀</TableHead>
                 <TableHead className="text-xs uppercase tracking-wider">Ojciec ♂</TableHead>
+                <TableHead className="text-xs uppercase tracking-wider min-w-[200px]">Jagnięta (Nr kolczyka)</TableHead>
                 <TableHead className="text-xs uppercase tracking-wider text-center">Urodzone</TableHead>
                 <TableHead className="text-xs uppercase tracking-wider text-center">Odchowane</TableHead>
                 <TableHead className="text-xs uppercase tracking-wider text-center">Przeżywalność</TableHead>
@@ -171,24 +172,101 @@ function LambingLog() {
                     </TableCell>
                     <TableCell>
                       {litter.mother ? (
-                        <div>
-                          <p className="text-sm font-medium">{litter.mother.name || litter.mother.earTag}</p>
-                          <p className="font-mono text-[10px] text-muted-foreground">{litter.mother.earTag}</p>
-                        </div>
+                        onViewSheep ? (
+                          <button
+                            type="button"
+                            onClick={() => onViewSheep(litter.mother!.id)}
+                            className="text-left group"
+                          >
+                            <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                              {litter.mother.name || litter.mother.earTag}
+                            </p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{litter.mother.earTag}</p>
+                          </button>
+                        ) : (
+                          <div>
+                            <p className="text-sm font-medium">{litter.mother.name || litter.mother.earTag}</p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{litter.mother.earTag}</p>
+                          </div>
+                        )
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {litter.father ? (
-                        <div>
-                          <p className="text-sm font-medium">{litter.father.name || litter.father.earTag}</p>
-                          <p className="font-mono text-[10px] text-muted-foreground">{litter.father.earTag}</p>
-                        </div>
+                        onViewSheep ? (
+                          <button
+                            type="button"
+                            onClick={() => onViewSheep(litter.father!.id)}
+                            className="text-left group"
+                          >
+                            <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                              {litter.father.name || litter.father.earTag}
+                            </p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{litter.father.earTag}</p>
+                          </button>
+                        ) : (
+                          <div>
+                            <p className="text-sm font-medium">{litter.father.name || litter.father.earTag}</p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{litter.father.earTag}</p>
+                          </div>
+                        )
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
+
+                    {/* Jagnięta (Nr kolczyka) - divided horizontally per lamb if multiple */}
+                    <TableCell className="p-2">
+                      {litter.lambs && litter.lambs.length > 0 ? (
+                        <div className="flex flex-col divide-y divide-border/60 rounded-md border border-border/60 bg-muted/20 overflow-hidden">
+                          {litter.lambs.map((lamb, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between gap-2 px-2.5 py-1 text-xs"
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className="text-xs font-bold shrink-0"
+                                  title={lamb.sex === 'MALE' ? 'Tryczek' : 'Jarka'}
+                                >
+                                  {lamb.sex === 'MALE' ? (
+                                    <span className="text-sky-400">♂</span>
+                                  ) : (
+                                    <span className="text-pink-400">♀</span>
+                                  )}
+                                </span>
+                                {lamb.id && onViewSheep ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onViewSheep(lamb.id!)}
+                                    className="font-mono text-xs font-semibold text-primary hover:underline hover:text-primary/80 truncate text-left"
+                                    title="Otwórz profil owcy"
+                                  >
+                                    {lamb.earTag}
+                                  </button>
+                                ) : (
+                                  <span className="font-mono text-xs font-medium text-foreground truncate">
+                                    {lamb.earTag}
+                                  </span>
+                                )}
+                              </div>
+                              {lamb.name && (
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
+                                  {lamb.name}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/40 text-xs italic">
+                          Brak kolczyków ({litter.bornCount} szt.)
+                        </span>
+                      )}
+                    </TableCell>
+
                     <TableCell className="text-center">
                       <Badge variant="default" className="text-xs font-mono">
                         {litter.bornCount}
@@ -268,6 +346,12 @@ const litterSchema = z.object({
 
 type LitterFormValues = z.input<typeof litterSchema>
 
+interface LambInputItem {
+  earTag: string
+  sex: 'MALE' | 'FEMALE'
+  name: string
+}
+
 function AddLitterDialog({
   open,
   onOpenChange,
@@ -285,38 +369,91 @@ function AddLitterDialog({
   const [motherId, setMotherId] = useState<string | undefined>(undefined)
   const [fatherId, setFatherId] = useState<string | undefined>(undefined)
   const [motherError, setMotherError] = useState(false)
+  const [lambs, setLambs] = useState<LambInputItem[]>([])
   const isEditing = !!editingLitter?.id
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<LitterFormValues>({
     resolver: zodResolver(litterSchema),
     defaultValues: {
       lambingDate: new Date().toISOString().split('T')[0],
-      bornCount: '',
+      bornCount: '1',
       weanedCount: '',
     },
   })
+
+  const watchedBornCount = watch('bornCount')
+
+  // Keep lambs array in sync with bornCount
+  useEffect(() => {
+    const count = parseInt(String(watchedBornCount || '0'), 10)
+    if (isNaN(count) || count <= 0) return
+
+    setLambs((prev) => {
+      const next: LambInputItem[] = []
+      for (let i = 0; i < count; i++) {
+        if (prev[i]) {
+          next.push(prev[i])
+        } else {
+          next.push({
+            earTag: '',
+            sex: i % 2 === 0 ? 'FEMALE' : 'MALE',
+            name: '',
+          })
+        }
+      }
+      return next
+    })
+  }, [watchedBornCount])
 
   // Pre-fill when editing
   useEffect(() => {
     if (editingLitter) {
       reset({
         lambingDate: toInputDate(editingLitter.lambingDate),
-        bornCount: editingLitter.bornCount != null ? String(editingLitter.bornCount) : '',
+        bornCount: editingLitter.bornCount != null ? String(editingLitter.bornCount) : '1',
         weanedCount: editingLitter.weanedCount != null ? String(editingLitter.weanedCount) : '',
       })
       setMotherId(editingLitter.motherId)
       setFatherId(editingLitter.fatherId || undefined)
+
+      if (editingLitter.lambs && editingLitter.lambs.length > 0) {
+        setLambs(
+          editingLitter.lambs.map((l) => ({
+            earTag: l.earTag || '',
+            sex: (l.sex as any) || 'FEMALE',
+            name: l.name || '',
+          }))
+        )
+      } else if (editingLitter.lambsData) {
+        try {
+          const parsed = JSON.parse(editingLitter.lambsData)
+          setLambs(parsed)
+        } catch {
+          setLambs([])
+        }
+      }
     } else {
-      reset({ lambingDate: toInputDate(null), bornCount: '', weanedCount: '' })
+      reset({ lambingDate: toInputDate(null), bornCount: '1', weanedCount: '' })
       setMotherId(undefined)
       setFatherId(undefined)
+      setLambs([{ earTag: '', sex: 'FEMALE', name: '' }])
     }
   }, [editingLitter, reset])
+
+  const updateLamb = (index: number, field: keyof LambInputItem, value: any) => {
+    setLambs((prev) => {
+      const copy = [...prev]
+      copy[index] = { ...copy[index], [field]: value }
+      return copy
+    })
+  }
 
   const onSubmit = async (data: any) => {
     if (!motherId) {
@@ -328,12 +465,16 @@ function AddLitterDialog({
 
     try {
       setSubmitting(true)
+      const validLambs = lambs.filter((l) => l.earTag.trim() || l.name.trim())
+      const lambsData = validLambs.length > 0 ? JSON.stringify(validLambs) : null
+
       if (isEditing) {
         await window.electronAPI.litters.update(editingLitter!.id!, {
           lambingDate: data.lambingDate,
           bornCount: data.bornCount,
           weanedCount: data.weanedCount || undefined,
           fatherId: fatherId || undefined,
+          lambsData,
         })
       } else {
         await window.electronAPI.litters.create({
@@ -342,11 +483,13 @@ function AddLitterDialog({
           weanedCount: data.weanedCount || undefined,
           motherId,
           fatherId: fatherId || undefined,
+          lambsData,
         })
       }
       reset()
       setMotherId(undefined)
       setFatherId(undefined)
+      setLambs([])
       onOpenChange(false)
       onSuccess()
     } catch (err) {
@@ -358,18 +501,18 @@ function AddLitterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Dodaj wykot</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edytuj wykot' : 'Dodaj wykot'}</DialogTitle>
           <DialogDescription>
-            Zarejestruj nowe narodziny jagniąt w stadzie.
+            Zarejestruj nowe narodziny jagniąt w stadzie oraz przypisz im numery kolczyków.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           {/* Mother selector (required) */}
           <div className="space-y-1.5">
-            <Label>Owca ♀ *</Label>
+            <Label>Owca ♀ (matka) *</Label>
             <SheepCombobox
               value={motherId}
               onChange={(v) => { setMotherId(v); setMotherError(false) }}
@@ -415,6 +558,7 @@ function AddLitterDialog({
                 id="bornCount"
                 type="number"
                 min="1"
+                max="5"
                 placeholder="np. 2"
                 {...register('bornCount')}
                 className={errors.bornCount ? 'border-red-500' : ''}
@@ -424,6 +568,75 @@ function AddLitterDialog({
               )}
             </div>
           </div>
+
+          {/* Dynamic Lamb Ear Tags Section */}
+          {lambs.length > 0 && (
+            <div className="rounded-xl border border-border bg-card/60 p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-primary uppercase tracking-wider">
+                  Numery kolczyków urodzonych jagniąt ({lambs.length})
+                </Label>
+                <span className="text-[11px] text-muted-foreground">Podaj kolczyk i płeć</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {lambs.map((lamb, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-12 gap-2 items-center rounded-lg border border-border/80 bg-background/50 p-2.5"
+                  >
+                    <div className="col-span-12 sm:col-span-3 flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">#{idx + 1}</span>
+                      <div className="flex rounded-md border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => updateLamb(idx, 'sex', 'FEMALE')}
+                          className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                            lamb.sex === 'FEMALE'
+                              ? 'bg-pink-500 text-white'
+                              : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                          }`}
+                          title="Jarka (owca)"
+                        >
+                          ♀
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateLamb(idx, 'sex', 'MALE')}
+                          className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                            lamb.sex === 'MALE'
+                              ? 'bg-sky-500 text-white'
+                              : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                          }`}
+                          title="Tryczek"
+                        >
+                          ♂
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="col-span-12 sm:col-span-5">
+                      <Input
+                        value={lamb.earTag}
+                        onChange={(e) => updateLamb(idx, 'earTag', e.target.value)}
+                        placeholder="Nr kolczyka (np. PL123...)"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="col-span-12 sm:col-span-4">
+                      <Input
+                        value={lamb.name}
+                        onChange={(e) => updateLamb(idx, 'name', e.target.value)}
+                        placeholder="Nazwa / ID (opcjonalnie)"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Weaned count */}
           <div className="space-y-1.5">
@@ -438,13 +651,13 @@ function AddLitterDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Anuluj
             </Button>
             <Button type="submit" size="sm" disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Dodaj wykot
+              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {isEditing ? 'Zapisz zmiany' : 'Dodaj wykot'}
             </Button>
           </div>
         </form>

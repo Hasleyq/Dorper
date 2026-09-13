@@ -104,6 +104,14 @@ export interface LitterData {
   fatherId?: string;
   mother?: SheepRecord;
   father?: SheepRecord;
+  lambsData?: string;
+  lambs?: Array<{
+    id?: string;
+    earTag: string;
+    name?: string;
+    sex?: string;
+    birthDate?: string;
+  }>;
   createdAt?: string;
 }
 
@@ -240,10 +248,13 @@ export interface ElectronAPI {
   };
   pens: {
     seed: () => Promise<{ seeded: boolean }>;
-    getAll: () => Promise<PenData[]>;
+    getAll: (includeArchived?: boolean) => Promise<PenData[]>;
+    getArchived: () => Promise<PenData[]>;
+    archive: (id: string, options?: { endDate?: string; notes?: string; releaseSheep?: boolean }) => Promise<PenData>;
+    restore: (id: string) => Promise<PenData>;
     moveSheep: (sheepId: string, penId: string | null) => Promise<void>;
-    update: (id: string, data: { name: string; description?: string }) => Promise<PenData>;
-    create: (data: { name: string; description?: string }) => Promise<PenData>;
+    update: (id: string, data: { name: string; description?: string; startDate?: string }) => Promise<PenData>;
+    create: (data: { name: string; description?: string; startDate?: string }) => Promise<PenData>;
     delete: (id: string) => Promise<void>;
   };
   settings: {
@@ -257,6 +268,20 @@ export interface PenData {
   id: string;
   name: string;
   description?: string | null;
+  isArchived?: boolean;
+  startDate?: string;
+  endDate?: string | null;
+  historyData?: string | null;
+  history?: {
+    closedAt: string;
+    startDate: string;
+    endDate: string;
+    ram: { id?: string; earTag: string; name?: string | null } | null;
+    ewes: Array<{ id?: string; earTag: string; name?: string | null }>;
+    lambsCount: number;
+    lambs: Array<{ id?: string; earTag: string; name?: string | null; sex?: string; birthDate?: string }>;
+    notes?: string;
+  } | null;
   sheep: Array<{
     id: string;
     earTag: string;

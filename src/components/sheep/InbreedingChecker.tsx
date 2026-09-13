@@ -49,7 +49,7 @@ const RESULT_CONFIG: Record<
   },
 }
 
-export function InbreedingChecker() {
+export function InbreedingChecker({ onViewSheep }: { onViewSheep?: (id: string) => void }) {
   const [allSheep, setAllSheep] = useState<SheepRecord[]>([])
   const [ramId, setRamId] = useState<string | undefined>(undefined)
   const [eweId, setEweId] = useState<string | undefined>(undefined)
@@ -106,7 +106,7 @@ export function InbreedingChecker() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Kalkulator inbredu</h2>
         <p className="text-sm text-muted-foreground">
-          Sprawdź pokrewieństwo przed planowanym kryciem
+          Sprawdź pokrewieństwo przed planowanym kryciem (do 4 pokoleń)
         </p>
       </div>
 
@@ -117,9 +117,9 @@ export function InbreedingChecker() {
             <Dna className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold">Kontrola pokrewieństwa</h3>
+            <h3 className="text-sm font-semibold">Kontrola pokrewieństwa (4 pokolenia)</h3>
             <p className="text-xs text-muted-foreground">
-              Wybierz tryka i owcę, aby system sprawdził wspólnych przodków do 3 pokoleń wstecz.
+              Wybierz tryka i owcę, aby system sprawdził wspólnych przodków do 4 pokoleń wstecz (uwzględniając bazę oraz rodowody 4-pokoleniowe).
             </p>
           </div>
         </div>
@@ -141,8 +141,16 @@ export function InbreedingChecker() {
             placeholder="Wybierz tryka..."
           />
           {selectedRam && (
-            <div className="mt-3 rounded-lg bg-sky-500/5 border border-sky-500/10 p-3">
-              <p className="text-sm font-semibold">{selectedRam.name || selectedRam.earTag}</p>
+            <div
+              onClick={() => onViewSheep && onViewSheep(selectedRam.id)}
+              className={`mt-3 rounded-lg bg-sky-500/5 border border-sky-500/10 p-3 transition-colors ${
+                onViewSheep ? 'cursor-pointer hover:bg-sky-500/10' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">{selectedRam.name || selectedRam.earTag}</p>
+                {onViewSheep && <span className="text-[10px] text-primary">Zobacz profil →</span>}
+              </div>
               <p className="font-mono text-xs text-muted-foreground">{selectedRam.earTag}</p>
             </div>
           )}
@@ -162,8 +170,16 @@ export function InbreedingChecker() {
             placeholder="Wybierz owcę..."
           />
           {selectedEwe && (
-            <div className="mt-3 rounded-lg bg-pink-500/5 border border-pink-500/10 p-3">
-              <p className="text-sm font-semibold">{selectedEwe.name || selectedEwe.earTag}</p>
+            <div
+              onClick={() => onViewSheep && onViewSheep(selectedEwe.id)}
+              className={`mt-3 rounded-lg bg-pink-500/5 border border-pink-500/10 p-3 transition-colors ${
+                onViewSheep ? 'cursor-pointer hover:bg-pink-500/10' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">{selectedEwe.name || selectedEwe.earTag}</p>
+                {onViewSheep && <span className="text-[10px] text-primary">Zobacz profil →</span>}
+              </div>
               <p className="font-mono text-xs text-muted-foreground">{selectedEwe.earTag}</p>
             </div>
           )}
@@ -221,12 +237,25 @@ export function InbreedingChecker() {
                   className="rounded-lg border border-border bg-card/50 p-4 space-y-3"
                 >
                   {/* Ancestor header */}
-                  <div className="flex items-center gap-3">
+                  <div
+                    onClick={() => {
+                      if (onViewSheep && ancestor.id && !ancestor.id.startsWith('name:')) {
+                        // find if id exists in allSheep
+                        const found = allSheep.find(s => s.id === ancestor.id || s.earTag === ancestor.earTag)
+                        if (found) onViewSheep(found.id)
+                      }
+                    }}
+                    className={`flex items-center gap-3 ${
+                      onViewSheep ? 'cursor-pointer group' : ''
+                    }`}
+                  >
                     <Badge variant={ancestor.sex === 'MALE' ? 'male' : 'female'} className="text-xs">
                       {ancestor.sex === 'MALE' ? '♂' : '♀'}
                     </Badge>
                     <div>
-                      <p className="text-sm font-semibold">{ancestor.name || ancestor.earTag}</p>
+                      <p className="text-sm font-semibold group-hover:text-primary transition-colors">
+                        {ancestor.name || ancestor.earTag}
+                      </p>
                       <p className="font-mono text-[10px] text-muted-foreground">{ancestor.earTag}</p>
                     </div>
                   </div>

@@ -104,7 +104,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============================================
   pens: {
     seed: () => ipcRenderer.invoke('pens:seed'),
-    getAll: () => ipcRenderer.invoke('pens:getAll'),
+    getAll: (includeArchived) => ipcRenderer.invoke('pens:getAll', includeArchived),
+    getArchived: () => ipcRenderer.invoke('pens:getArchived'),
+    archive: (id, options) => ipcRenderer.invoke('pens:archive', id, options),
+    restore: (id) => ipcRenderer.invoke('pens:restore', id),
     moveSheep: (sheepId, penId) => ipcRenderer.invoke('pens:moveSheep', sheepId, penId),
     update: (id, data) => ipcRenderer.invoke('pens:update', id, data),
     create: (data) => ipcRenderer.invoke('pens:create', data),

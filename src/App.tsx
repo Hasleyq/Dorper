@@ -51,12 +51,29 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [selectedSheepId, setSelectedSheepId] = useState<string | null>(null)
+  const [returnView, setReturnView] = useState<View | null>(null)
 
   // Navigate to a view, clearing any profile selection
   const navigateTo = (view: View) => {
     setCurrentView(view)
     setSelectedSheepId(null)
+    setReturnView(null)
     setMobileMenuOpen(false)
+  }
+
+  // Open profile for any sheep from any page
+  const handleViewSheep = (id: string) => {
+    setReturnView(currentView)
+    setSelectedSheepId(id)
+  }
+
+  // Back from profile to previous view
+  const handleBackFromProfile = () => {
+    setSelectedSheepId(null)
+    if (returnView) {
+      setCurrentView(returnView)
+      setReturnView(null)
+    }
   }
 
   return (
@@ -171,29 +188,32 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-x-hidden overflow-y-auto">
         <div className="animate-fade-in p-3 sm:p-4 md:p-6 pb-24 md:pb-6 max-w-full">
-          {/* Dashboard */}
-          {currentView === 'dashboard' && <Dashboard />}
-
-          {/* Registry + Profile */}
-          {currentView === 'registry' && !selectedSheepId && (
-            <SheepRegistry onViewSheep={(id) => setSelectedSheepId(id)} />
-          )}
-          {currentView === 'registry' && selectedSheepId && (
+          {selectedSheepId ? (
             <SheepProfile
               sheepId={selectedSheepId}
-              onBack={() => setSelectedSheepId(null)}
+              onBack={handleBackFromProfile}
             />
+          ) : (
+            <>
+              {/* Dashboard */}
+              {currentView === 'dashboard' && <Dashboard onViewSheep={handleViewSheep} />}
+
+              {/* Registry */}
+              {currentView === 'registry' && (
+                <SheepRegistry onViewSheep={handleViewSheep} />
+              )}
+
+              {/* Full pages */}
+              {currentView === 'health' && <HealthPage onViewSheep={handleViewSheep} />}
+              {currentView === 'finances' && <FinancesPage onViewSheep={handleViewSheep} />}
+              {currentView === 'breeding' && <BreedingPage onViewSheep={handleViewSheep} />}
+              {currentView === 'kalendarz' && <CalendarPage onViewSheep={handleViewSheep} />}
+              {currentView === 'kojce' && <PensPage onViewSheep={handleViewSheep} />}
+
+              {/* Settings */}
+              {currentView === 'settings' && <SettingsPage />}
+            </>
           )}
-
-          {/* Full pages */}
-          {currentView === 'health' && <HealthPage />}
-          {currentView === 'finances' && <FinancesPage />}
-          {currentView === 'breeding' && <BreedingPage />}
-          {currentView === 'kalendarz' && <CalendarPage />}
-          {currentView === 'kojce' && <PensPage />}
-
-          {/* Settings */}
-          {currentView === 'settings' && <SettingsPage />}
         </div>
       </main>
 

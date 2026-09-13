@@ -139,7 +139,10 @@ export function initWebApiBridge() {
     // Pens (Kojce)
     pens: {
       seed: () => rpcCall('pens:seed'),
-      getAll: () => rpcCall('pens:getAll'),
+      getAll: (includeArchived?: boolean) => rpcCall('pens:getAll', includeArchived),
+      getArchived: () => rpcCall('pens:getArchived'),
+      archive: (id: string, options?: any) => rpcCall('pens:archive', id, options),
+      restore: (id: string) => rpcCall('pens:restore', id),
       moveSheep: (sheepId: string, penId: string) => rpcCall('pens:moveSheep', sheepId, penId),
       update: (id: string, data: any) => rpcCall('pens:update', id, data),
       create: (data: any) => rpcCall('pens:create', data),

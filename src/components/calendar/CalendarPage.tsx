@@ -39,9 +39,11 @@ const EVENT_STYLES: Record<string, { dot: string; text: string; label: string }>
 }
 
 // ============================================
-// Calendar Page — Real CSS Grid
-// ============================================
-export function CalendarPage() {
+interface CalendarPageProps {
+  onViewSheep?: (id: string) => void
+}
+
+export function CalendarPage({ onViewSheep }: CalendarPageProps = {}) {
   const [events, setEvents] = useState<CalendarEventData[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -272,7 +274,18 @@ export function CalendarPage() {
                               {ev.description && (
                                 <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{ev.description}</p>
                               )}
-                              <Badge variant="secondary" className="text-[9px] mt-1">{style.label}</Badge>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-[9px]">{style.label}</Badge>
+                                {ev.sheepId && onViewSheep && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onViewSheep(ev.sheepId!)}
+                                    className="text-[10px] text-primary hover:underline font-medium"
+                                  >
+                                    Profil owcy →
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             {ev.type === 'REMINDER' && !ev.auto && (
                               <RowActions

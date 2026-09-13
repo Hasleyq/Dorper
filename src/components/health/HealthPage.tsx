@@ -51,7 +51,11 @@ const HEALTH_TYPE_STYLES: Record<
   'Korekcja racic': { variant: 'secondary', icon: Scissors },
 }
 
-export function HealthPage() {
+interface HealthPageProps {
+  onViewSheep?: (id: string) => void
+}
+
+export function HealthPage({ onViewSheep }: HealthPageProps = {}) {
   const [records, setRecords] = useState<GlobalHealthRecord[]>([])
   const [allSheep, setAllSheep] = useState<SheepRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -219,8 +223,14 @@ export function HealthPage() {
                   <TableRow key={record.id}>
                     <TableCell className="font-mono text-sm">{formatDate(record.date)}</TableCell>
                     <TableCell>
-                      <div>
-                        <p className="text-sm font-medium">{record.sheep?.name || record.sheep?.earTag || '—'}</p>
+                      <div
+                        className={record.sheep && onViewSheep ? 'cursor-pointer group' : ''}
+                        onClick={() => record.sheep && onViewSheep && onViewSheep(record.sheep.id)}
+                        title={record.sheep && onViewSheep ? 'Kliknij, aby otworzyć profil owcy' : undefined}
+                      >
+                        <p className={`text-sm font-medium ${record.sheep && onViewSheep ? 'group-hover:text-primary group-hover:underline' : ''}`}>
+                          {record.sheep?.name || record.sheep?.earTag || '—'}
+                        </p>
                         <p className="font-mono text-[10px] text-muted-foreground">{record.sheep?.earTag}</p>
                       </div>
                     </TableCell>
